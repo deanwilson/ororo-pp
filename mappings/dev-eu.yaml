@@ -1,0 +1,16 @@
+--- 
+SubnetConfig:
+  us-east-1a:
+    WebServersSubnetCIDR: 10.10.24.0/27
+  us-east-1d:
+    WebServersSubnetCIDR: 10.10.24.32/27
+  us-east-1e:
+     WebServersSubnetCIDR: 10.10.24.64/27
+
+AWSRegion2AMI:
+  us-east-1: 
+    AMI: ami-55555555
+  us-west-1: 
+    AMI: ami-66666666
+  eu-west-1: 
+    AMI: ami-77777777

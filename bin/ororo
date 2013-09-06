@@ -1,0 +1,64 @@
+#!/usr/bin/env python
+import argparse 
+import simplejson as json
+import sys
+import yaml
+from jinja2 import Template, TemplateSyntaxError
+
+class Ororo(object):
+
+    def __init__(self, args):
+        self.config = self.load_yaml(args.configfile)
+        self.mapping = json.dumps(self.load_yaml(args.mappingfile), sort_keys=True, indent=4 * ' ') + ','
+        self.expanded_template = self._process_template(args.templatefile)
+
+
+    def template(self):
+        return self.expanded_template
+
+
+    def load_yaml(self, filename):
+        content = False
+        with open(filename, 'r') as yamlfile:
+            try:
+                content = yaml.safe_load(yamlfile)
+            except Exception as e:
+                print("Failed to process {}: {}").format(filename, str(e))
+                sys.exit(1)
+
+        return content
+
+
+    def _process_template(self, filename):
+        expanded = False
+
+        with open(filename, 'r') as template:
+            contents = template.read()
+            try:
+                expanded = Template(contents).render(mappings=self.mapping, config=self.config)
+            except TemplateSyntaxError as e:
+                print("Failed to process {}: {}").format(filename, str(e))
+                sys.exit(1)
+
+        return expanded
+
+
+if __name__ == '__main__':
+
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('--verbose', action='store_true', default=False,
+        help='Display more information'
+    )
+
+    parser.add_argument('-f', '--config-file', dest='configfile', action='store',
+        help='The config file to use'
+    )
+    parser.add_argument('-t', '--template-file', dest='templatefile', action='store',
+        help='The template file to use'
+    )
+    parser.add_argument('-m', '--mapping-file', dest='mappingfile', action='store',
+        help='The mapping file to use'
+    )
+
+    print(Ororo(parser.parse_args()).template())

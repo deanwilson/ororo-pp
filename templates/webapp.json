@@ -1,0 +1,79 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+
+  "Description" : "Creates the foo service web and application server role",
+
+  "Parameters" : {
+
+    "VPC" : {
+      "Type" : "String",
+      "Description" : "VPC ID"
+    },
+
+    {% for az in config.availability_zones -%}
+
+    "PrivateNATRouteTableAZ{{ az }}" : {
+      "Type" : "String",
+      "Description" : "Private NAT route table ID in AZ{{ az }}"
+    },
+
+    "PublicSubnetAZ{{ az }}" : {
+      "Type" : "String",
+      "Description" : "ID of the public subnet in AZ{{ az }}"
+    },
+
+    {% endfor -%}
+
+    "WebServerInstanceType" : {
+      "Description" : "Webserver EC2 instance type",
+      "Type" : "String",
+      "Default" : "t1.micro",
+      "AllowedValues" : {{ config.allowed_instance_types|replace("'",'"') }},
+      "ConstraintDescription" : "must be a valid EC2 instance type."
+    }
+  },
+
+  "Mappings":
+
+    {{ mappings }}
+
+  "Resources" : {
+
+    {% for az in config.availability_zones -%}
+
+    "PrivateNATWebServerSubnetAZ{{ az }}RouteTableAssociation" : {
+      "Type" : "AWS::EC2::SubnetRouteTableAssociation",
+      "Properties" : {
+        "SubnetId" : { "Ref" : "WebServerSubnetAZ{{ az }}" },
+        "RouteTableId" : { "Ref" : "PrivateNATRouteTableAZ{{ az }}" }
+      }
+    },
+
+    "WebServerSubnetAZ{{ az }}" : {
+      "Type" : "AWS::EC2::Subnet",
+      "Properties" : {
+        "VpcId" : { "Ref" : "VPC" },
+        "AvailabilityZone" : { "Ref" : "AZ{{ az }}" },
+        "CidrBlock" : { "Fn::FindInMap" : [ "SubnetConfig", { "Ref" : "AZ{{ az }}" }, "WebServersSubnetCIDR" ] },
+        "Tags" : [
+          {"Key" : "Application", "Value" : { "Ref" : "AWS::StackId"} },
+          {"Key" : "Network", "Value" : "Private" },
+          {"Key" : "Tier", "Value" : "WebServers" }
+        ]
+      }
+    },
+
+    {% endfor %}
+
+    "WebServerFleetScaleDownPolicy" : {
+      "Type" : "AWS::AutoScaling::ScalingPolicy",
+      "Properties" : {
+        "AdjustmentType" : "ChangeInCapacity",
+        "AutoScalingGroupName" : { "Ref" : "WebServerFleet" },
+        "Cooldown" : "90",
+        "ScalingAdjustment" : "-1"
+      }
+    }
+
+  }
+}

@@ -1,0 +1,1 @@
+./bin/ororo --config-file ./config.yaml --template-file ./templates/webapp.json --mapping-file ./mappings/dev-eu.yaml
